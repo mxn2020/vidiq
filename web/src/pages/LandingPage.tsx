@@ -9,6 +9,7 @@ import LoadingScreen from '../components/LoadingScreen'
 import PromptLibrary from '../components/PromptLibrary'
 import { useToast } from '../components/Toast'
 import type { AnalysisResult } from '../App'
+import { extractFrames } from '../lib/videoUtils'
 
 interface LandingPageProps {
     onAnalyze: (result: AnalysisResult) => void
@@ -57,8 +58,17 @@ function LandingPage({ onAnalyze }: LandingPageProps) {
             const { storageId } = await uploadResult.json()
 
             // 3. Run AI analysis
+            let base64Frames: string[] | undefined;
+            try {
+                addToast('Extracting frames...', 'success')
+                base64Frames = await extractFrames(file, 15)
+            } catch (frameErr) {
+                console.warn('Failed to extract frames', frameErr)
+            }
+
             const result = await analyzeVideo({
                 storageId,
+                base64Frames,
                 customPrompt: customPrompt || undefined,
             })
 

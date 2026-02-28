@@ -2,13 +2,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useConvexAuth } from 'convex/react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Film, Menu, X } from 'lucide-react'
-import { useState } from 'react'
-
+import { useState, useEffect } from 'react'
 function Layout({ children }: { children: React.ReactNode }) {
     const { isAuthenticated } = useConvexAuth()
     const { signOut } = useAuthActions()
     const navigate = useNavigate()
     const [mobileOpen, setMobileOpen] = useState(false)
+
+    useEffect(() => {
+        if (mobileOpen) {
+            document.body.style.overflow = 'hidden'
+        } else {
+            document.body.style.overflow = ''
+        }
+        return () => { document.body.style.overflow = '' }
+    }, [mobileOpen])
 
     const handleSignOut = async () => {
         await signOut()
@@ -16,53 +24,46 @@ function Layout({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="layout">
-            <header className="header">
-                <div className="header-inner">
-                    <Link to="/" className="header-logo">
-                        <Film size={24} className="header-logo-icon" style={{ color: 'var(--color-primary)' }} />
-                        <span>VidIQ</span>
-                    </Link>
+        <div className="app">
+            <header className="app__header">
+                <Link to="/" className="app__logo">
+                    <Film size={24} className="app__logo-icon" style={{ color: 'var(--color-primary)' }} />
+                    VidIQ
+                </Link>
 
-                    {/* Mobile menu toggle */}
-                    <button
-                        className="btn-ghost"
-                        onClick={() => setMobileOpen(!mobileOpen)}
-                        style={{ display: 'none' }}
-                        aria-label="Toggle menu"
-                        id="mobile-menu-toggle"
-                    >
-                        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-                    </button>
+                <button
+                    className="app__mobile-toggle"
+                    onClick={() => setMobileOpen(!mobileOpen)}
+                    aria-label="Toggle menu"
+                >
+                    {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+                </button>
 
-                    <nav className="header-nav">
-                        <Link to="/">Analyze</Link>
-                        <Link to="/pricing">Pricing</Link>
-                        <Link to="/help">Help</Link>
-                        {isAuthenticated ? (
-                            <>
-                                <Link to="/settings">Settings</Link>
-                                <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>
-                                    Sign Out
-                                </button>
-                            </>
-                        ) : (
-                            <Link to="/login">
-                                <button className="btn btn-primary btn-sm">Sign In</button>
-                            </Link>
-                        )}
-                    </nav>
-                </div>
+                <nav className={`app__nav ${mobileOpen ? 'app__nav--open' : ''}`}>
+                    <Link to="/" className="app__nav-link" onClick={() => setMobileOpen(false)}>Analyze</Link>
+                    <Link to="/pricing" className="app__nav-link" onClick={() => setMobileOpen(false)}>Pricing</Link>
+                    <Link to="/help" className="app__nav-link" onClick={() => setMobileOpen(false)}>Help</Link>
+                    {isAuthenticated ? (
+                        <>
+                            <Link to="/settings" className="app__nav-link" onClick={() => setMobileOpen(false)}>Settings</Link>
+                            <button className="app__nav-link" onClick={() => { setMobileOpen(false); handleSignOut(); }}>
+                                Sign Out
+                            </button>
+                        </>
+                    ) : (
+                        <Link to="/login" className="app__nav-link" onClick={() => setMobileOpen(false)}>Sign In</Link>
+                    )}
+                </nav>
             </header>
 
-            <main className="layout-content">
+            <main className="app__main">
                 {children}
             </main>
 
-            <footer className="footer">
+            <footer className="app__footer">
                 <p>
                     © {new Date().getFullYear()} VidIQ — Timestamped Video Intelligence •{' '}
-                    <a href="/help">Help</a> • <a href="/pricing">Pricing</a>
+                    <a href="/help" className="text-secondary">Help</a> • <a href="/pricing" className="text-secondary">Pricing</a>
                 </p>
                 <p style={{ marginTop: 4, fontSize: '0.75rem' }}>
                     AI analysis may not be 100% accurate. Results are generated by machine learning models.

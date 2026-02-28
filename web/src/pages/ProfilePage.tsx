@@ -3,6 +3,7 @@ import { api } from '../../convex/_generated/api'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Video, User, Settings, CreditCard } from 'lucide-react'
+import { MissingConfigDialog } from '../components/MissingConfigDialog'
 
 export default function ProfilePage() {
     const { isAuthenticated } = useConvexAuth()
@@ -15,6 +16,7 @@ export default function ProfilePage() {
     const [editingName, setEditingName] = useState(false)
     const [nameDraft, setNameDraft] = useState('')
     const [loading, setLoading] = useState(false)
+    const [configError, setConfigError] = useState<string | null>(null)
 
     if (!isAuthenticated) {
         navigate('/login')
@@ -35,7 +37,12 @@ export default function ProfilePage() {
             const { url } = await createPortal()
             window.location.href = url
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to open portal')
+            const msg = err instanceof Error ? err.message : String(err)
+            if (msg.includes('not configured')) {
+                setConfigError(msg)
+            } else {
+                alert(msg)
+            }
         } finally {
             setLoading(false)
         }
@@ -49,6 +56,12 @@ export default function ProfilePage() {
 
     return (
         <div className="profile-page">
+            {configError && (
+                <MissingConfigDialog
+                    message={configError}
+                    onClose={() => setConfigError(null)}
+                />
+            )}
             <h1><User size={28} style={{ marginRight: 8 }} /> My Profile</h1>
 
             <div className="profile-grid">
@@ -112,7 +125,7 @@ export default function ProfilePage() {
                     <div className="profile-stats">
                         <div className="profile-stat">
                             <Video size={24} style={{ color: 'var(--color-primary)' }} />
-                            <div className="profile-stat__value">{me.hasProfile ? me.totalAnalyses ?? 0 : 0}</div>
+                            <div className="profile-stat__value">{me.hasProfile && 'totalAnalyses' in me ? me.totalAnalyses ?? 0 : 0}</div>
                             <div className="profile-stat__label">Total Analyses</div>
                         </div>
                         <div className="profile-stat">

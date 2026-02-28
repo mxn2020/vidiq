@@ -198,6 +198,7 @@ export const logAiRequest = internalMutation({
 export const analyzeVideo = action({
     args: {
         storageId: v.optional(v.id("_storage")),
+        base64Frames: v.optional(v.array(v.string())),
         youtubeUrl: v.optional(v.string()),
         model: v.optional(v.string()),
         customPrompt: v.optional(v.string()),
@@ -225,8 +226,7 @@ export const analyzeVideo = action({
                     model,
                     SYSTEM_PROMPT,
                     userPrompt,
-                    // TODO: Extract frames from video storage if storageId provided
-                    undefined,
+                    args.base64Frames,
                 );
 
                 const parsed = parseAnalysisResponse(result.content);
