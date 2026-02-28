@@ -391,3 +391,45 @@ function estimateDuration(scenes: NvidiaScene[]): number {
     }
     return 0;
 }
+
+export const callModel = action({
+    args: {
+        model: v.string(),
+        messages: v.any(), // array of objects required by the boilerplate's test page format
+    },
+    handler: async (ctx, args) => {
+        const apiKey = process.env.NVIDIA_API_KEY;
+        if (!apiKey) throw new Error("NVIDIA_API_KEY not configured");
+
+        const response = await fetch(NVIDIA_BASE_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: args.model,
+                messages: args.messages,
+                temperature: 0.2,
+                max_tokens: 4096,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`NVIDIA API error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content ?? "";
+    }
+});
+
+export const generateVideoAction = action({
+    args: { prompt: v.string() },
+    handler: async (ctx, args) => {
+        // VidIQ stub for Text2Video testing
+        await new Promise(r => setTimeout(r, 2000));
+        return "https://www.w3schools.com/html/mov_bbb.mp4";
+    }
+});

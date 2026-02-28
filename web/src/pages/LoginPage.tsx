@@ -1,3 +1,4 @@
+import { MissingConfigDialog } from '../components/MissingConfigDialog'
 import { useState } from 'react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useNavigate } from 'react-router-dom'
@@ -10,6 +11,7 @@ function LoginPage() {
     const [password, setPassword] = useState('')
     const [name, setName] = useState('')
     const [error, setError] = useState('')
+    const [configError, setConfigError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -27,9 +29,18 @@ function LoginPage() {
             navigate('/')
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
+
+            // Check for missing environment variables first
+            if (message.includes('Missing environment variable') || message.includes('not configured')) {
+                const match = message.match(/`([^`]+)`/) || message.match(/([A-Z_]+)\s+not configured/)
+                const keyName = match ? match[1] : 'JWT_PRIVATE_KEY'
+                setConfigError(`${keyName} not configured`)
+                return
+            }
+
             if (message.includes('InvalidAccountId') || message.includes('Could not find')) {
                 setError('No account found with this email.')
-            } else if (message.includes('InvalidSecret') || message.includes('Invalid password')) {
+            } else if (message.includes('InvalidSecret') || message.includes('Invalid password') || message.includes('incorrect password')) {
                 setError('Incorrect password.')
             } else if (message.includes('AccountAlreadyExists')) {
                 setError('An account with this email already exists.')
@@ -45,6 +56,12 @@ function LoginPage() {
 
     return (
         <div className="auth-container">
+            {configError && (
+                <MissingConfigDialog
+                    message={configError}
+                    onClose={() => setConfigError(null)}
+                />
+            )}
             <div className="auth-card">
                 <h2 className="auth-title">
                     {flow === 'signIn' ? '🎬 Welcome back' : '🎬 Create account'}

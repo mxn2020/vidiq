@@ -121,6 +121,7 @@ http.route({
                     await ctx.runAction(api.stripe.handleSubscriptionActive, {
                         userId,
                         stripeCustomerId: customerId,
+                        plan: "paid",
                     });
 
                     await ctx.runMutation(internal.auditLog.logSystem, {

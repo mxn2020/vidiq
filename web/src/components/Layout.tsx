@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useConvexAuth } from 'convex/react'
+import { useQuery, useConvexAuth } from 'convex/react'
 import { useAuthActions } from '@convex-dev/auth/react'
+import { api } from '../../convex/_generated/api'
 import { Film, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 function Layout({ children }: { children: React.ReactNode }) {
@@ -8,6 +9,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     const { signOut } = useAuthActions()
     const navigate = useNavigate()
     const [mobileOpen, setMobileOpen] = useState(false)
+    const me = useQuery(api.users.getMe)
 
     useEffect(() => {
         if (mobileOpen) {
@@ -43,6 +45,14 @@ function Layout({ children }: { children: React.ReactNode }) {
                     <Link to="/" className="app__nav-link" onClick={() => setMobileOpen(false)}>Analyze</Link>
                     <Link to="/pricing" className="app__nav-link" onClick={() => setMobileOpen(false)}>Pricing</Link>
                     <Link to="/help" className="app__nav-link" onClick={() => setMobileOpen(false)}>Help</Link>
+                    {isAuthenticated && me?.role === 'admin' && (
+                        <>
+                            <Link to="/admin" className="app__nav-link" onClick={() => setMobileOpen(false)}>⚙️ Admin</Link>
+                            <Link to="/admin/stripe" className="app__nav-link" onClick={() => setMobileOpen(false)}>💳 Billing</Link>
+                            <Link to="/audit-logs" className="app__nav-link" onClick={() => setMobileOpen(false)}>📋 Logs</Link>
+                            <Link to="/model-tests" className="app__nav-link" onClick={() => setMobileOpen(false)}>🧪 Models</Link>
+                        </>
+                    )}
                     {isAuthenticated ? (
                         <>
                             <Link to="/settings" className="app__nav-link" onClick={() => setMobileOpen(false)}>Settings</Link>

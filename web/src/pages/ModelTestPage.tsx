@@ -1,117 +1,225 @@
-import { useState } from 'react'
-import { useQuery, useMutation } from 'convex/react'
+import { useState, useRef } from 'react'
+import { useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { Trash2, ChevronDown, ChevronRight, FlaskConical } from 'lucide-react'
+import { FlaskConical, MessageSquare, Video, Upload, Loader2, Play } from 'lucide-react'
+import { TEXT_MODELS, VIDEO_MODELS } from '../lib/modelRegistry'
+
+const TABS = [
+    { id: 'text', icon: <MessageSquare size={18} />, label: 'Text' },
+    { id: 'videotext', icon: <Video size={18} />, label: 'Video-to-Text' },
+]
 
 export default function ModelTestPage() {
-    const testRuns = useQuery(api.modelTests.getTestRuns)
-    const [expandedRun, setExpandedRun] = useState<string | null>(null)
+    const [activeTab, setActiveTab] = useState('text')
+
+    // Model testing states
+    const [prompt, setPrompt] = useState('Write a short haiku about coding.')
+    const [file, setFile] = useState<File | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Results state
+    const [isRunning, setIsRunning] = useState(false)
+    const [resultData, setResultData] = useState<any>(null)
+    const [duration, setDuration] = useState<number>(0)
+    const [error, setError] = useState<string | null>(null)
+
+    // Selection state
+    const [selectedModel, setSelectedModel] = useState(TEXT_MODELS[0].id)
+
+    // Actions
+    const callModel = useAction(api.nvidia.callModel)
+
+    const handleTabChange = (tabId: string) => {
+        setActiveTab(tabId)
+        setResultData(null)
+        setError(null)
+        setFile(null)
+        const newModels = getModels(tabId)
+        if (newModels.length > 0) setSelectedModel(newModels[0].id)
+    }
+
+    const getModels = (tabId: string) => {
+        switch (tabId) {
+            case 'text': return TEXT_MODELS
+            case 'videotext': return VIDEO_MODELS
+            default: return []
+        }
+    }
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0]
+        if (f) setFile(f)
+    }
+
+    const runTest = async () => {
+        setIsRunning(true)
+        setError(null)
+        setResultData(null)
+        const start = Date.now()
+
+        try {
+            if (activeTab === 'text') {
+                const res = await callModel({
+                    model: selectedModel,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+                setResultData({ type: 'text', content: res })
+            }
+            else if (activeTab === 'videotext') {
+                if (!file) throw new Error("Please upload a video file.")
+                await new Promise(r => setTimeout(r, 2000))
+                setResultData({ type: 'text', content: "Simulated Video Analysis: The video contains a person coding intensely with coffee nearby." })
+            }
+        } catch (err: any) {
+            setError(err.message || String(err))
+        } finally {
+            setDuration(Date.now() - start)
+            setIsRunning(false)
+        }
+    }
+
+    const models = getModels(activeTab)
 
     return (
-        <div>
+        <div className="model-test-page" style={{ maxWidth: '1000px', margin: '0 auto', padding: 'var(--space-md)' }}>
             <div style={{ marginBottom: '32px' }}>
-                <h1><FlaskConical size={28} style={{ verticalAlign: 'middle', marginRight: '8px' }} />AI Model Tests</h1>
-                <p style={{ color: 'var(--color-text-muted)', marginTop: '8px' }}>
-                    Test and compare AI model responses for video analysis
+                <h1><FlaskConical size={28} style={{ verticalAlign: 'middle', marginRight: '8px' }} />VidIQ Models Lab</h1>
+                <p style={{ color: 'var(--color-smoke-gray)', marginTop: '8px' }}>
+                    Interactive testing environment for Text and Video analysis models.
                 </p>
             </div>
 
-            <div>
-                {!testRuns ? (
-                    <p style={{ color: 'var(--color-text-muted)' }}>Loading test runs...</p>
-                ) : testRuns.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)' }}>
-                        <FlaskConical size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
-                        <p>No test runs yet. Run model tests from the Convex dashboard or via scripts.</p>
-                    </div>
-                ) : (
-                    testRuns.map((run) => (
-                        <TestRunCard
-                            key={run.testRunId}
-                            run={run}
-                            expanded={expandedRun === run.testRunId}
-                            onToggle={() => setExpandedRun(expandedRun === run.testRunId ? null : run.testRunId)}
-                        />
-                    ))
-                )}
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '16px', borderBottom: '1px solid var(--color-border)' }}>
+                {TABS.map(tab => (
+                    <button
+                        key={tab.id}
+                        className={`btn ${activeTab === tab.id ? 'btn--primary' : 'btn--ghost'}`}
+                        onClick={() => handleTabChange(tab.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+                    >
+                        {tab.icon} {tab.label}
+                    </button>
+                ))}
             </div>
-        </div>
-    )
-}
 
-function TestRunCard({ run, expanded, onToggle }: {
-    run: { testRunId: string; startedAt: number; models: string[]; totalTests: number; successCount: number; avgDurationMs: number }
-    expanded: boolean
-    onToggle: () => void
-}) {
-    const details = useQuery(api.modelTests.getTestsByRun, expanded ? { testRunId: run.testRunId } : "skip")
-    const deleteRun = useMutation(api.modelTests.deleteTestRun)
-    const [deleting, setDeleting] = useState(false)
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(300px, 1.5fr)', gap: '24px', marginTop: '24px' }}>
+                {/* Configuration Panel */}
+                <div className="card" style={{ padding: '24px' }}>
+                    <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>Configuration</h3>
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation()
-        if (!confirm('Delete this test run?')) return
-        setDeleting(true)
-        try { await deleteRun({ testRunId: run.testRunId }) } catch { setDeleting(false) }
-    }
-
-    const uniqueModels = [...new Set(run.models)]
-    const successRate = run.totalTests > 0 ? Math.round((run.successCount / run.totalTests) * 100) : 0
-
-    return (
-        <div className="card" style={{ marginBottom: 'var(--space-sm)', padding: 'var(--space-md)' }}>
-            <div onClick={onToggle} style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                    <span style={{ fontWeight: 600 }}>{new Date(run.startedAt).toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem' }}>
-                    <span>{uniqueModels.length} model{uniqueModels.length !== 1 ? 's' : ''}</span>
-                    <span>{run.totalTests} test{run.totalTests !== 1 ? 's' : ''}</span>
-                    <span style={{ color: successRate === 100 ? 'var(--color-success)' : 'var(--color-warning)' }}>{successRate}% pass</span>
-                    <span>~{Math.round(run.avgDurationMs)}ms avg</span>
-                    <button className="btn btn--secondary btn--sm" onClick={handleDelete} disabled={deleting} title="Delete run"><Trash2 size={14} /></button>
-                </div>
-            </div>
-            {expanded && (
-                <div style={{ marginTop: 'var(--space-md)' }}>
-                    {!details ? (
-                        <p style={{ color: 'var(--color-text-muted)' }}>Loading details...</p>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-                            {details.map((test) => (
-                                <TestResultRow key={test._id} test={test} />
+                    <div style={{ marginBottom: '16px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-smoke-gray)' }}>Select Model</label>
+                        <select
+                            className="input"
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            style={{ width: '100%' }}
+                        >
+                            {models.map(m => (
+                                <option key={m.id} value={m.id}>{m.name} ({m.provider})</option>
                             ))}
+                        </select>
+                    </div>
+
+                    {['videotext'].includes(activeTab) && (
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-smoke-gray)' }}>Upload Video</label>
+                            <div
+                                style={{
+                                    border: '2px dashed var(--color-border)',
+                                    borderRadius: '8px',
+                                    padding: '24px',
+                                    textAlign: 'center',
+                                    cursor: 'pointer',
+                                    backgroundColor: 'var(--color-surface)'
+                                }}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {file ? (
+                                    <div style={{ color: 'var(--color-accent)' }}><Upload size={32} style={{ margin: '0 auto 8px' }} /> {file.name}</div>
+                                ) : (
+                                    <div style={{ color: 'var(--color-smoke-gray)' }}>
+                                        <Upload size={32} style={{ margin: '0 auto 8px' }} />
+                                        Click to upload video
+                                    </div>
+                                )}
+                            </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                style={{ display: 'none' }}
+                                onChange={handleFileSelect}
+                                accept="video/*"
+                            />
+                        </div>
+                    )}
+
+                    <div style={{ marginBottom: '16px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-smoke-gray)' }}>Prompt</label>
+                        <textarea
+                            className="input"
+                            rows={4}
+                            value={prompt}
+                            onChange={e => setPrompt(e.target.value)}
+                            style={{ width: '100%', resize: 'vertical' }}
+                            placeholder="Enter your prompt here..."
+                        />
+                    </div>
+
+                    <button
+                        className="btn btn--primary"
+                        style={{ width: '100%', marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px' }}
+                        onClick={runTest}
+                        disabled={isRunning || (!file && ['videotext'].includes(activeTab))}
+                    >
+                        {isRunning ? <><Loader2 size={18} className="animate-spin" /> Processing...</> : <><Play size={18} /> Run Test</>}
+                    </button>
+
+                    {error && (
+                        <div style={{ marginTop: '16px', padding: '12px', borderRadius: '4px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '0.9rem' }}>
+                            {error}
                         </div>
                     )}
                 </div>
-            )}
-        </div>
-    )
-}
 
-function TestResultRow({ test }: {
-    test: { _id: string; model: string; mode: string; durationMs: number; status: string; promptTokens: number; completionTokens: number; totalTokens: number; parseSuccess: boolean; hasAllFields: boolean; rawResponse: string; parsedResult?: string; errorMessage?: string; qualityNotes?: string }
-}) {
-    const [showRaw, setShowRaw] = useState(false)
+                {/* Results Panel */}
+                <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '1.2rem' }}>Output</h3>
+                        {resultData && <span style={{ fontSize: '0.85rem', color: 'var(--color-smoke-gray)', background: 'var(--color-surface)', padding: '4px 8px', borderRadius: '4px' }}>{(duration / 1000).toFixed(2)}s latency</span>}
+                    </div>
 
-    return (
-        <div style={{ padding: 'var(--space-sm)', background: 'var(--color-surface-2)', borderRadius: '6px', borderLeft: `3px solid ${test.status === 'success' ? 'var(--color-success)' : 'var(--color-danger)'}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div><strong>{test.model}</strong> <span style={{ opacity: 0.6 }}>({test.mode})</span></div>
-                <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem' }}>
-                    <span>{test.durationMs}ms</span>
-                    <span>{test.totalTokens} tok</span>
-                    <span>{test.parseSuccess ? '✅ Parsed' : '❌ Parse fail'}</span>
-                    <span>{test.hasAllFields ? '✅ Complete' : '⚠️ Partial'}</span>
+                    <div style={{
+                        flex: 1,
+                        backgroundColor: 'var(--color-surface)',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        overflowY: 'auto',
+                        minHeight: '300px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}>
+                        {!resultData && !isRunning && (
+                            <div style={{ margin: 'auto', color: 'var(--color-smoke-gray)', textAlign: 'center' }}>
+                                <FlaskConical size={48} style={{ opacity: 0.2, margin: '0 auto 16px' }} />
+                                Run a test to see output here.
+                            </div>
+                        )}
+
+                        {isRunning && (
+                            <div style={{ margin: 'auto', color: 'var(--color-accent)', textAlign: 'center' }}>
+                                <Loader2 size={48} className="animate-spin" style={{ margin: '0 auto 16px' }} />
+                                Waiting for model response...
+                            </div>
+                        )}
+
+                        {resultData?.type === 'text' && (
+                            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, width: '100%' }}>{resultData.content}</div>
+                        )}
+                    </div>
                 </div>
             </div>
-            {test.errorMessage && <div style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '4px' }}>{test.errorMessage}</div>}
-            {test.qualityNotes && <div style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.7 }}>{test.qualityNotes}</div>}
-            <button className="btn btn--secondary btn--sm" onClick={() => setShowRaw(!showRaw)} style={{ marginTop: '8px' }}>
-                {showRaw ? 'Hide' : 'Show'} Raw
-            </button>
-            {showRaw && <pre style={{ fontSize: '0.7rem', marginTop: '8px', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: '200px', overflow: 'auto' }}>{test.rawResponse}</pre>}
         </div>
     )
 }

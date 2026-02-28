@@ -11,6 +11,7 @@ import LoginPage from './pages/LoginPage'
 import SettingsPage from './pages/SettingsPage'
 import BillingPage from './pages/BillingPage'
 import AdminPage from './pages/AdminPage'
+import AdminStripePage from './pages/AdminStripePage'
 import LogsPage from './pages/LogsPage'
 import PricingPage from './pages/PricingPage'
 import HelpPage from './pages/HelpPage'
@@ -76,6 +77,7 @@ function AppRoutes() {
                 <Route path="/billing" element={<AuthGuard><BillingPage /></AuthGuard>} />
                 {/* Admin routes */}
                 <Route path="/admin" element={<AuthGuard><AdminPage /></AuthGuard>} />
+                <Route path="/admin/stripe" element={<AuthGuard><AdminStripePage /></AuthGuard>} />
                 <Route path="/logs" element={<AuthGuard><LogsPage /></AuthGuard>} />
                 <Route path="/audit-logs" element={<AuthGuard><AuditLogsPage /></AuthGuard>} />
                 <Route path="/model-tests" element={<AuthGuard><ModelTestPage /></AuthGuard>} />

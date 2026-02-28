@@ -21,6 +21,7 @@ import type * as prompts from "../prompts.js";
 import type * as rateLimit from "../rateLimit.js";
 import type * as storage from "../storage.js";
 import type * as stripe from "../stripe.js";
+import type * as stripeAdmin from "../stripeAdmin.js";
 import type * as usageLimits from "../usageLimits.js";
 import type * as users from "../users.js";
 
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   rateLimit: typeof rateLimit;
   storage: typeof storage;
   stripe: typeof stripe;
+  stripeAdmin: typeof stripeAdmin;
   usageLimits: typeof usageLimits;
   users: typeof users;
 }>;
