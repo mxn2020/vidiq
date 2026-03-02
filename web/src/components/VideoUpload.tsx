@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { Upload, Link as LinkIcon } from 'lucide-react'
+import { Input } from './ui/Input'
 
 interface VideoUploadProps {
     onFileSelected: (file: File) => void
@@ -96,8 +97,7 @@ function VideoUpload({ onFileSelected, onUrlSubmitted, isLoading }: VideoUploadP
                             color: 'var(--color-text-muted)',
                         }}
                     />
-                    <input
-                        className="input"
+                    <Input
                         type="url"
                         placeholder="https://www.youtube.com/watch?v=..."
                         value={url}

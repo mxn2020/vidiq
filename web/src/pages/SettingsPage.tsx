@@ -3,6 +3,8 @@ import { useQuery, useMutation, useConvexAuth } from 'convex/react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { api } from '../../convex/_generated/api'
 import { useToast } from '../components/Toast'
+import { Input } from '../components/ui/Input'
+import { Select } from '../components/ui/Select'
 import { useNavigate } from 'react-router-dom'
 
 function SettingsPage() {
@@ -78,10 +80,9 @@ function SettingsPage() {
                 <h3 className="settings-section-title">Profile</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                     <div>
-                        <label className="label" htmlFor="display-name">Display Name</label>
-                        <input
+                        <Input
                             id="display-name"
-                            className="input"
+                            label="Display Name"
                             type="text"
                             placeholder="Your name"
                             value={displayName}
@@ -107,10 +108,9 @@ function SettingsPage() {
                 <h3 className="settings-section-title">Analysis Preferences</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                     <div>
-                        <label className="label" htmlFor="default-model">Default AI Model</label>
-                        <select
+                        <Select
                             id="default-model"
-                            className="input"
+                            label="Default AI Model"
                             value={defaultModel}
                             onChange={(e) => setDefaultModel(e.target.value)}
                         >
@@ -119,20 +119,19 @@ function SettingsPage() {
                             <option value="nemotron-nano-12b">Nemotron Nano (12B)</option>
                             <option value="cosmos-nemotron-34b">Cosmos Nemotron (34B)</option>
                             <option value="llama-3.2-90b">Llama 3.2 (90B Vision)</option>
-                        </select>
+                        </Select>
                     </div>
                     <div>
-                        <label className="label" htmlFor="default-fps">Default FPS</label>
-                        <select
+                        <Select
                             id="default-fps"
-                            className="input"
+                            label="Default FPS"
                             value={defaultFps}
                             onChange={(e) => setDefaultFps(e.target.value)}
                         >
                             <option value="2">2 FPS (Faster)</option>
                             <option value="4">4 FPS (Recommended)</option>
                             <option value="8">8 FPS (Detailed)</option>
-                        </select>
+                        </Select>
                     </div>
                     <button
                         className="btn btn-primary btn-sm"

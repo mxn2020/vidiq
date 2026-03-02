@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sparkles, Play } from 'lucide-react'
 import { useAction, useConvexAuth } from 'convex/react'
+import { Input } from '../components/ui/Input'
 import { api } from '../../convex/_generated/api'
 import { useToast } from '../components/Toast'
 import type { AnalysisResult } from '../App'
@@ -184,9 +185,8 @@ function ComparisonPage() {
             <div className="settings-section">
                 <h3 className="settings-section-title">2. Provide Video</h3>
                 <div className="flex gap-md">
-                    <input
+                    <Input
                         type="url"
-                        className="input"
                         placeholder="Paste YouTube URL..."
                         style={{ flex: 1 }}
                         id="compare-url-input"

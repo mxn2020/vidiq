@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useQuery, useConvexAuth } from 'convex/react'
+import { useQuery, useMutation, useConvexAuth } from 'convex/react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { api } from '../../convex/_generated/api'
 import { Film, Menu, X } from 'lucide-react'
@@ -10,6 +10,13 @@ function Layout({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate()
     const [mobileOpen, setMobileOpen] = useState(false)
     const me = useQuery(api.users.getMe)
+    const createOrUpdate = useMutation(api.users.createOrUpdate)
+
+    useEffect(() => {
+        if (isAuthenticated && me && !me.hasProfile) {
+            createOrUpdate({})
+        }
+    }, [isAuthenticated, me, createOrUpdate])
 
     useEffect(() => {
         if (mobileOpen) {

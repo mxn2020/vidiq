@@ -4,6 +4,9 @@ import { api } from '../../convex/_generated/api'
 import { SkeletonCard } from '../components/Skeleton'
 import { useToast } from '../components/Toast'
 import { Plus, Archive, Loader2, DollarSign, Edit2 } from 'lucide-react'
+import { Input } from '../components/ui/Input'
+import { Select } from '../components/ui/Select'
+import { Textarea } from '../components/ui/Textarea'
 
 type Plan = {
     id: string
@@ -26,7 +29,7 @@ export default function AdminStripePage() {
     const createPlanAction = useAction(api.stripeAdmin.createPlan)
     const updatePlanAction = useAction(api.stripeAdmin.updatePlan)
     const archivePlanAction = useAction(api.stripeAdmin.archivePlan)
-    const { showToast } = useToast()
+    const { addToast } = useToast()
 
     const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState(true)
@@ -50,11 +53,11 @@ export default function AdminStripePage() {
             setPlans(data)
         } catch (err) {
             console.error(err)
-            showToast('Failed to load plans', 'error')
+            addToast('Failed to load plans', 'error')
         } finally {
             setLoading(false)
         }
-    }, [fetchPlans, showToast])
+    }, [fetchPlans, addToast])
 
     useEffect(() => {
         loadPlans()
@@ -100,7 +103,7 @@ export default function AdminStripePage() {
                     description,
                     features: featureList,
                 })
-                showToast('Plan updated successfully', 'success')
+                addToast('Plan updated successfully', 'success')
             } else {
                 await createPlanAction({
                     name,
@@ -112,13 +115,13 @@ export default function AdminStripePage() {
                     planKey,
                     appSlug,
                 })
-                showToast('Plan created successfully', 'success')
+                addToast('Plan created successfully', 'success')
             }
             setIsCreateModalOpen(false)
             loadPlans()
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err)
-            showToast(msg, 'error')
+            addToast(msg, 'error')
         } finally {
             setSaving(false)
         }
@@ -129,11 +132,11 @@ export default function AdminStripePage() {
 
         try {
             await archivePlanAction({ productId })
-            showToast('Plan archived successfully', 'success')
+            addToast('Plan archived successfully', 'success')
             loadPlans()
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err)
-            showToast(msg, 'error')
+            addToast(msg, 'error')
         }
     }
 
@@ -247,40 +250,34 @@ export default function AdminStripePage() {
                         <h2 style={{ marginBottom: '24px' }}>{editingPlanId ? 'Edit Plan' : 'Create Stripe Plan'}</h2>
                         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div className="login-form__field">
-                                <label className="login-form__label">Internal App Slug</label>
-                                <input className="login-form__input" value={appSlug} onChange={e => setAppSlug(e.target.value)} required />
+                                <Input label="Internal App Slug" value={appSlug} onChange={e => setAppSlug(e.target.value)} required />
                                 <small style={{ color: 'var(--color-smoke-gray)', fontSize: '0.75rem', marginTop: '4px' }}>Determines which app this shows up on.</small>
                             </div>
                             <div className="login-form__field">
-                                <label className="login-form__label">Internal Plan Key</label>
-                                <input className="login-form__input" value={planKey} onChange={e => setPlanKey(e.target.value)} placeholder="e.g. pro, enterprise, topup_40" required />
+                                <Input label="Internal Plan Key" value={planKey} onChange={e => setPlanKey(e.target.value)} placeholder="e.g. pro, enterprise, topup_40" required />
                                 <small style={{ color: 'var(--color-smoke-gray)', fontSize: '0.75rem', marginTop: '4px' }}>Used by your codebase to identify the plan.</small>
                             </div>
 
                             <hr style={{ border: 'none', borderTop: '1px solid var(--color-space-blue)', margin: '8px 0' }} />
 
                             <div className="login-form__field">
-                                <label className="login-form__label">Public Name</label>
-                                <input className="login-form__input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Pro Subscription" required />
+                                <Input label="Public Name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Pro Subscription" required />
                             </div>
                             <div className="login-form__field">
-                                <label className="login-form__label">Public Description</label>
-                                <input className="login-form__input" value={description} onChange={e => setDescription(e.target.value)} />
+                                <Input label="Public Description" value={description} onChange={e => setDescription(e.target.value)} />
                             </div>
 
                             {!editingPlanId && (
                                 <div style={{ display: 'flex', gap: '16px' }}>
                                     <div className="login-form__field" style={{ flexGrow: 1 }}>
-                                        <label className="login-form__label">Price (USD)</label>
-                                        <input className="login-form__input" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="9.00" required />
+                                        <Input label="Price (USD)" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="9.00" required />
                                     </div>
                                     <div className="login-form__field" style={{ flexGrow: 1 }}>
-                                        <label className="login-form__label">Billing Interval</label>
-                                        <select className="login-form__input" value={interval} onChange={e => setInterval(e.target.value as any)}>
+                                        <Select label="Billing Interval" value={interval} onChange={e => setInterval(e.target.value as any)}>
                                             <option value="month">Monthly</option>
                                             <option value="year">Yearly</option>
                                             <option value="none">One-time</option>
-                                        </select>
+                                        </Select>
                                     </div>
                                 </div>
                             )}
@@ -292,8 +289,7 @@ export default function AdminStripePage() {
                             )}
 
                             <div className="login-form__field" style={{ marginBottom: ('24px' as any) }}>
-                                <label className="login-form__label">Features (one per line)</label>
-                                <textarea className="login-form__input" rows={5} value={features} onChange={e => setFeatures(e.target.value)} placeholder="Feature 1&#10;Feature 2&#10;Feature 3" required />
+                                <Textarea label="Features (one per line)" rows={5} value={features} onChange={e => setFeatures(e.target.value)} placeholder="Feature 1&#10;Feature 2&#10;Feature 3" required />
                             </div>
 
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>

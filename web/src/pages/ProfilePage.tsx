@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Video, User, Settings, CreditCard } from 'lucide-react'
 import { MissingConfigDialog } from '../components/MissingConfigDialog'
+import { Input } from '../components/ui/Input'
 
 export default function ProfilePage() {
     const { isAuthenticated } = useConvexAuth()
@@ -72,11 +73,10 @@ export default function ProfilePage() {
                         <span className="profile-field__label">Name</span>
                         {editingName ? (
                             <div className="profile-field__edit">
-                                <input
+                                <Input
                                     type="text"
                                     value={nameDraft}
                                     onChange={(e) => setNameDraft(e.target.value)}
-                                    className="profile-field__input"
                                     autoFocus
                                 />
                                 <button className="btn btn--primary btn--sm" onClick={handleSaveName}>Save</button>
@@ -130,7 +130,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="profile-stat">
                             <CreditCard size={24} style={{ color: 'var(--color-accent)' }} />
-                            <div className="profile-stat__value">{subscription?.creditBalance ?? 0}</div>
+                            <div className="profile-stat__value">{(subscription as any)?.creditBalance ?? 0}</div>
                             <div className="profile-stat__label">Credits</div>
                         </div>
                     </div>

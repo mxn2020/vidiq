@@ -4,12 +4,12 @@ import { Sparkles, Clock, Eye, Zap, Shield, Globe, Layers } from 'lucide-react'
 import { useMutation, useAction, useConvexAuth } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import VideoUpload from '../components/VideoUpload'
+import { Textarea } from '../components/ui/Textarea'
 import BatchUpload from '../components/BatchUpload'
 import LoadingScreen from '../components/LoadingScreen'
 import PromptLibrary from '../components/PromptLibrary'
 import { useToast } from '../components/Toast'
 import type { AnalysisResult } from '../App'
-import { extractFrames } from '../lib/videoUtils'
 
 interface LandingPageProps {
     onAnalyze: (result: AnalysisResult) => void
@@ -58,17 +58,10 @@ function LandingPage({ onAnalyze }: LandingPageProps) {
             const { storageId } = await uploadResult.json()
 
             // 3. Run AI analysis
-            let base64Frames: string[] | undefined;
-            try {
-                addToast('Extracting frames...', 'success')
-                base64Frames = await extractFrames(file, 15)
-            } catch (frameErr) {
-                console.warn('Failed to extract frames', frameErr)
-            }
+            addToast('Analyzing native video...', 'success')
 
             const result = await analyzeVideo({
                 storageId,
-                base64Frames,
                 customPrompt: customPrompt || undefined,
             })
 
@@ -239,11 +232,10 @@ function LandingPage({ onAnalyze }: LandingPageProps) {
 
                         {showPrompts && (
                             <div style={{ animation: 'slideInUp 0.2s ease' }}>
-                                <textarea
-                                    className="textarea"
+                                <Textarea
                                     placeholder='e.g. "Focus on the cooking techniques" or "Track the red car"'
                                     value={customPrompt}
-                                    onChange={(e) => setCustomPrompt(e.target.value)}
+                                    onChange={(e: any) => setCustomPrompt(e.target.value)}
                                     id="custom-prompt-input"
                                     rows={3}
                                 />

@@ -1,4 +1,4 @@
-import { action, internalMutation } from "./_generated/server";
+import { action, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
@@ -95,22 +95,20 @@ async function callNvidiaApi(
     model: string,
     systemPrompt: string,
     userPrompt: string,
-    base64Frames?: string[],
+    videoUrl?: string,
 ): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }> {
-    const messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }> = [
+    const messages: Array<{ role: string; content: any }> = [
         { role: "system", content: systemPrompt },
     ];
 
-    if (base64Frames && base64Frames.length > 0) {
-        // Multi-modal: text + images
-        const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
-            { type: "text", text: userPrompt },
-            ...base64Frames.map((frame) => ({
-                type: "image_url" as const,
-                image_url: { url: `data:image/jpeg;base64,${frame}` },
-            })),
-        ];
-        messages.push({ role: "user", content });
+    if (videoUrl) {
+        messages.push({
+            role: "user",
+            content: [
+                { type: "text", text: userPrompt },
+                { type: "video_url", video_url: { url: videoUrl } }
+            ]
+        });
     } else {
         messages.push({ role: "user", content: userPrompt });
     }
@@ -157,6 +155,25 @@ const DEMO_SCENES: NvidiaScene[] = [
     { startTime: "00:35", endTime: "00:44", title: "Closing Scene", description: "Wide-angle closing shots reveal the full scope of the environment. The camera pulls back, providing a final panoramic view before the video ends.", objects: ["panoramic view", "landscape", "final framing"], actions: ["pull-back shot", "closing panorama", "end sequence"] },
 ];
 
+// ─── Fetch AI Prompts (Action Helper) ─────────────────────────────
+
+export const getSystemPrompt = internalQuery({
+    args: { promptId: v.string() },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("aiPrompts")
+            .withIndex("by_prompt_id", (q) => q.eq("promptId", args.promptId))
+            .first();
+    }
+});
+
+export const getRecentAiLogs = internalQuery({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("aiLogs").order("desc").take(5);
+    }
+});
+
 // ─── Log AI request to database ───────────────────────────────────
 
 export const logAiRequest = internalMutation({
@@ -198,13 +215,13 @@ export const logAiRequest = internalMutation({
 export const analyzeVideo = action({
     args: {
         storageId: v.optional(v.id("_storage")),
-        base64Frames: v.optional(v.array(v.string())),
+        base64Frames: v.optional(v.array(v.string())), // Kept for backwards compatibility but unused
         youtubeUrl: v.optional(v.string()),
         model: v.optional(v.string()),
         customPrompt: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const model = args.model ?? "nvidia/cosmos-reason2-8b";
+        const model = args.model ?? "nvidia/nemotron-nano-12b-v2-vl";
         const apiKey = process.env.NVIDIA_API_KEY;
 
         // ── Real API mode ───────────────────────────
@@ -220,13 +237,27 @@ export const analyzeVideo = action({
                 userPrompt += `\n\nVideo URL: ${args.youtubeUrl}`;
             }
 
+            // Fetch the public URL for the uploaded video to send natively to NVIDIA
+            let videoUrl: string | undefined = undefined;
+            if (args.storageId) {
+                videoUrl = (await ctx.storage.getUrl(args.storageId)) ?? undefined;
+            }
+
+            // Try to load system prompt from DB
+            let activeSystemPrompt = SYSTEM_PROMPT;
+            const dbPrompt = await ctx.runQuery(internal.nvidia.getSystemPrompt, { promptId: "system-video-analysis" });
+
+            if (dbPrompt && dbPrompt.content) {
+                activeSystemPrompt = dbPrompt.content;
+            }
+
             try {
                 const result = await callNvidiaApi(
                     apiKey,
                     model,
-                    SYSTEM_PROMPT,
+                    activeSystemPrompt,
                     userPrompt,
-                    args.base64Frames,
+                    videoUrl,
                 );
 
                 const parsed = parseAnalysisResponse(result.content);
@@ -395,11 +426,28 @@ function estimateDuration(scenes: NvidiaScene[]): number {
 export const callModel = action({
     args: {
         model: v.string(),
-        messages: v.any(), // array of objects required by the boilerplate's test page format
+        messages: v.optional(v.any()), // array of objects required by the boilerplate's test page format
+        storageId: v.optional(v.id("_storage")),
+        prompt: v.optional(v.string())
     },
     handler: async (ctx, args) => {
         const apiKey = process.env.NVIDIA_API_KEY;
         if (!apiKey) throw new Error("NVIDIA_API_KEY not configured");
+
+        let messages = args.messages || [];
+
+        if (args.storageId && args.prompt) {
+            const videoUrl = await ctx.storage.getUrl(args.storageId);
+            messages = [
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: args.prompt },
+                        { type: "video_url", video_url: { url: videoUrl } }
+                    ]
+                }
+            ];
+        }
 
         const response = await fetch(NVIDIA_BASE_URL, {
             method: "POST",
@@ -409,7 +457,7 @@ export const callModel = action({
             },
             body: JSON.stringify({
                 model: args.model,
-                messages: args.messages,
+                messages: messages,
                 temperature: 0.2,
                 max_tokens: 4096,
             }),

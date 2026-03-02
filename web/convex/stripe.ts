@@ -301,3 +301,23 @@ export const handleSubscriptionActive = action({
         console.log(`[handleSubscriptionActive] Done`);
     },
 });
+
+export const handleTopUpSuccess = action({
+    args: {
+        userId: v.string(),
+        credits: v.number(),
+        stripeSessionId: v.string(),
+        packageLabel: v.string(),
+    },
+    handler: async (ctx, { userId, credits, stripeSessionId, packageLabel }) => {
+        console.log(`[handleTopUpSuccess] userId=${userId}, credits=${credits}, sessionId=${stripeSessionId}`);
+        await ctx.runMutation(internal.credits.addPurchasedCredits, {
+            userId,
+            amount: credits,
+            description: `Top-up: ${packageLabel}`,
+            stripeSessionId,
+        });
+        console.log(`[handleTopUpSuccess] Done`);
+    },
+});
+

@@ -2,6 +2,7 @@ import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
+import { Input } from '../components/ui/Input'
 
 function LogsPage() {
     const logs = useQuery(api.aiLogs.list, {}) ?? []
@@ -16,15 +17,15 @@ function LogsPage() {
             <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-xl)', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
                 <h2>📋 AI Logs</h2>
                 <div className="flex items-center gap-sm">
-                    <input
-                        className="input"
-                        type="text"
-                        placeholder="Filter by model..."
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                        style={{ width: 200 }}
-                        id="log-filter"
-                    />
+                    <div style={{ width: 200 }}>
+                        <Input
+                            type="text"
+                            placeholder="Filter by model..."
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            id="log-filter"
+                        />
+                    </div>
                     <button className="btn btn-secondary btn-sm" title="Auto-refreshes via Convex">
                         <RefreshCw size={14} />
                     </button>

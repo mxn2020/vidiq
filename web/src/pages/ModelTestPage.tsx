@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react'
-import { useAction } from 'convex/react'
+import { useAction, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { FlaskConical, MessageSquare, Video, Upload, Loader2, Play } from 'lucide-react'
 import { TEXT_MODELS, VIDEO_MODELS } from '../lib/modelRegistry'
+import { Select } from '../components/ui/Select'
+import { Textarea } from '../components/ui/Textarea'
 
 const TABS = [
     { id: 'text', icon: <MessageSquare size={18} />, label: 'Text' },
@@ -28,6 +30,7 @@ export default function ModelTestPage() {
 
     // Actions
     const callModel = useAction(api.nvidia.callModel)
+    const generateUploadUrl = useMutation(api.storage.generateUploadUrl)
 
     const handleTabChange = (tabId: string) => {
         setActiveTab(tabId)
@@ -67,8 +70,22 @@ export default function ModelTestPage() {
             }
             else if (activeTab === 'videotext') {
                 if (!file) throw new Error("Please upload a video file.")
-                await new Promise(r => setTimeout(r, 2000))
-                setResultData({ type: 'text', content: "Simulated Video Analysis: The video contains a person coding intensely with coffee nearby." })
+
+                // Upload file to Convex storage
+                const uploadUrl = await generateUploadUrl()
+                const uploadResult = await fetch(uploadUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': file.type },
+                    body: file,
+                })
+                const { storageId } = await uploadResult.json()
+
+                const res = await callModel({
+                    model: selectedModel,
+                    storageId: storageId,
+                    prompt: prompt
+                })
+                setResultData({ type: 'text', content: res })
             }
         } catch (err: any) {
             setError(err.message || String(err))
@@ -109,17 +126,15 @@ export default function ModelTestPage() {
                     <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>Configuration</h3>
 
                     <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-smoke-gray)' }}>Select Model</label>
-                        <select
-                            className="input"
+                        <Select
+                            label="Select Model"
                             value={selectedModel}
                             onChange={(e) => setSelectedModel(e.target.value)}
-                            style={{ width: '100%' }}
                         >
                             {models.map(m => (
                                 <option key={m.id} value={m.id}>{m.name} ({m.provider})</option>
                             ))}
-                        </select>
+                        </Select>
                     </div>
 
                     {['videotext'].includes(activeTab) && (
@@ -156,13 +171,11 @@ export default function ModelTestPage() {
                     )}
 
                     <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-smoke-gray)' }}>Prompt</label>
-                        <textarea
-                            className="input"
+                        <Textarea
+                            label="Prompt"
                             rows={4}
                             value={prompt}
                             onChange={e => setPrompt(e.target.value)}
-                            style={{ width: '100%', resize: 'vertical' }}
                             placeholder="Enter your prompt here..."
                         />
                     </div>

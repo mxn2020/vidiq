@@ -2,6 +2,7 @@ import { MissingConfigDialog } from '../components/MissingConfigDialog'
 import { useState } from 'react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useNavigate } from 'react-router-dom'
+import { Input } from '../components/ui/Input'
 
 function LoginPage() {
     const { signIn } = useAuthActions()
@@ -84,10 +85,9 @@ function LoginPage() {
                 <form className="auth-form" onSubmit={handleSubmit}>
                     {flow === 'signUp' && (
                         <div>
-                            <label className="label" htmlFor="name-input">Name</label>
-                            <input
+                            <Input
                                 id="name-input"
-                                className="input"
+                                label="Name"
                                 type="text"
                                 placeholder="Your name"
                                 value={name}
@@ -97,10 +97,9 @@ function LoginPage() {
                         </div>
                     )}
                     <div>
-                        <label className="label" htmlFor="email-input">Email</label>
-                        <input
+                        <Input
                             id="email-input"
-                            className="input"
+                            label="Email"
                             type="email"
                             placeholder="you@example.com"
                             value={email}
@@ -109,10 +108,9 @@ function LoginPage() {
                         />
                     </div>
                     <div>
-                        <label className="label" htmlFor="password-input">Password</label>
-                        <input
+                        <Input
                             id="password-input"
-                            className="input"
+                            label="Password"
                             type="password"
                             placeholder="••••••••"
                             value={password}
