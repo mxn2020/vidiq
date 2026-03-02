@@ -481,3 +481,53 @@ export const generateVideoAction = action({
         return "https://www.w3schools.com/html/mov_bbb.mp4";
     }
 });
+
+export const generateImageAction = action({
+    args: { prompt: v.string() },
+    handler: async (ctx, args) => {
+        const apiKey = process.env.NVIDIA_API_KEY;
+        if (!apiKey) throw new Error("NVIDIA_API_KEY not configured");
+
+        const response = await fetch('https://integrate.api.nvidia.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                model: "stabilityai/stable-diffusion-xl-base-1.0",
+                prompt: args.prompt.substring(0, 1000),
+                n: 1,
+                response_format: "b64_json",
+                size: "1024x1024"
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`NVIDIA Image API error (${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json() as any;
+        const b64 = data.data?.[0]?.b64_json;
+        if (!b64) throw new Error("NVIDIA Image API did not return b64_json");
+        return b64;
+    }
+});
+
+export const generateAudioAction = action({
+    args: { prompt: v.string(), voiceId: v.optional(v.string()) },
+    handler: async (ctx, args) => {
+        await new Promise(r => setTimeout(r, 1500));
+        return "UklGRuQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YcABAAAA";
+    }
+});
+
+export const transcribeAudioAction = action({
+    args: { base64Audio: v.string() },
+    handler: async (ctx, args) => {
+        await new Promise(r => setTimeout(r, 1000));
+        return "This is a dummy transcription. Integrate with an actual ASR endpoint.";
+    }
+});

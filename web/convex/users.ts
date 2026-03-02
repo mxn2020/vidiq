@@ -206,3 +206,37 @@ export const updateProfile = mutation({
         await ctx.db.patch(profile._id, { name });
     },
 });
+
+/**
+ * Bootstrap an admin user by email (run from CLI).
+ * Usage: npx convex run users:bootstrapAdmin '{"email":"admin@example.com"}'
+ */
+export const bootstrapAdmin = mutation({
+    args: { email: v.string() },
+    handler: async (ctx, { email }) => {
+        const users = await ctx.db.query("users").collect();
+        const user = users.find((u: any) => u.email === email);
+        if (!user) throw new Error(`No user found with email: ${email}`);
+
+        const profile = await ctx.db
+            .query("userProfiles")
+            .withIndex("by_userId", (q) => q.eq("userId", user._id))
+            .first();
+
+        if (profile) {
+            await ctx.db.patch(profile._id, { role: "admin" });
+            return { status: "updated", profileId: profile._id };
+        } else {
+            const id = await ctx.db.insert("userProfiles", {
+                userId: user._id,
+                name: user.name ?? "",
+                role: "admin",
+                totalAnalyses: 0,
+                creditBalance: 10,
+                plan: "free",
+                createdAt: Date.now(),
+            });
+            return { status: "created", profileId: id };
+        }
+    },
+});
