@@ -2,7 +2,7 @@ import { MissingConfigDialog } from '../components/MissingConfigDialog'
 import { useState } from 'react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useNavigate } from 'react-router-dom'
-import { Input } from '../components/ui/Input'
+import { Input } from '@geenius-ui/react-css'
 
 function LoginPage() {
     const { signIn } = useAuthActions()

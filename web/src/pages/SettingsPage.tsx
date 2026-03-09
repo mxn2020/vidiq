@@ -3,8 +3,8 @@ import { useQuery, useMutation, useConvexAuth } from 'convex/react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { api } from '../../convex/_generated/api'
 import { useToast } from '../components/Toast'
-import { Input } from '../components/ui/Input'
-import { Select } from '../components/ui/Select'
+import { Input } from '@geenius-ui/react-css'
+import { Select } from '@geenius-ui/react-css'
 import { useNavigate } from 'react-router-dom'
 
 function SettingsPage() {

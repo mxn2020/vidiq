@@ -1,14 +1,15 @@
 import { useState, useRef } from 'react'
 import { useAction, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { FlaskConical, MessageSquare, Video, Upload, Loader2, Play } from 'lucide-react'
+import { FlaskConical, MessageSquare, Video, Image, Upload, Loader2, Play } from 'lucide-react'
 import { TEXT_MODELS, VIDEO_MODELS } from '../lib/modelRegistry'
-import { Select } from '../components/ui/Select'
-import { Textarea } from '../components/ui/Textarea'
+import { Select, Textarea } from '@geenius-ui/react-css'
+import { extractFrames } from '../lib/videoUtils'
 
 const TABS = [
     { id: 'text', icon: <MessageSquare size={18} />, label: 'Text' },
-    { id: 'videotext', icon: <Video size={18} />, label: 'Video-to-Text' },
+    { id: 'videotext', icon: <Video size={18} />, label: 'Video (Native)' },
+    { id: 'videoframes', icon: <Image size={18} />, label: 'Video (Frames)' },
 ]
 
 export default function ModelTestPage() {
@@ -18,6 +19,9 @@ export default function ModelTestPage() {
     const [prompt, setPrompt] = useState('Write a short haiku about coding.')
     const [file, setFile] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Frame extraction config
+    const [frameCount, setFrameCount] = useState(5)
 
     // Results state
     const [isRunning, setIsRunning] = useState(false)
@@ -44,7 +48,8 @@ export default function ModelTestPage() {
     const getModels = (tabId: string) => {
         switch (tabId) {
             case 'text': return TEXT_MODELS
-            case 'videotext': return VIDEO_MODELS
+            case 'videotext':
+            case 'videoframes': return VIDEO_MODELS
             default: return []
         }
     }
@@ -53,6 +58,8 @@ export default function ModelTestPage() {
         const f = e.target.files?.[0]
         if (f) setFile(f)
     }
+
+    const isVideoTab = ['videotext', 'videoframes'].includes(activeTab)
 
     const runTest = async () => {
         setIsRunning(true)
@@ -66,12 +73,12 @@ export default function ModelTestPage() {
                     model: selectedModel,
                     messages: [{ role: 'user', content: prompt }]
                 })
-                setResultData({ type: 'text', content: res })
+                setResultData({ type: 'text', content: res, method: 'text' })
             }
             else if (activeTab === 'videotext') {
                 if (!file) throw new Error("Please upload a video file.")
 
-                // Upload file to Convex storage
+                // Upload file to Convex storage → native video_url
                 const uploadUrl = await generateUploadUrl()
                 const uploadResult = await fetch(uploadUrl, {
                     method: 'POST',
@@ -85,7 +92,32 @@ export default function ModelTestPage() {
                     storageId: storageId,
                     prompt: prompt
                 })
-                setResultData({ type: 'text', content: res })
+                setResultData({ type: 'text', content: res, method: 'native-video' })
+            }
+            else if (activeTab === 'videoframes') {
+                if (!file) throw new Error("Please upload a video file.")
+
+                // Extract frames locally then send as base64 images
+                const frames = await extractFrames(file, frameCount)
+
+                const content: any[] = [{ type: 'text', text: prompt }]
+                for (const frame of frames) {
+                    content.push({
+                        type: 'image_url',
+                        image_url: { url: `data:image/jpeg;base64,${frame}` }
+                    })
+                }
+
+                const res = await callModel({
+                    model: selectedModel,
+                    messages: [{ role: 'user', content }]
+                })
+                setResultData({
+                    type: 'text',
+                    content: res,
+                    method: 'frame-extraction',
+                    framesUsed: frames.length
+                })
             }
         } catch (err: any) {
             setError(err.message || String(err))
@@ -125,6 +157,28 @@ export default function ModelTestPage() {
                 <div className="card" style={{ padding: '24px' }}>
                     <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>Configuration</h3>
 
+                    {/* Method info badge */}
+                    {isVideoTab && (
+                        <div style={{
+                            marginBottom: '16px',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            lineHeight: 1.4,
+                            backgroundColor: activeTab === 'videotext'
+                                ? 'rgba(34, 197, 94, 0.1)'
+                                : 'rgba(59, 130, 246, 0.1)',
+                            color: activeTab === 'videotext'
+                                ? '#22c55e'
+                                : '#3b82f6',
+                            border: `1px solid ${activeTab === 'videotext' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(59, 130, 246, 0.2)'}`
+                        }}>
+                            {activeTab === 'videotext'
+                                ? '🎬 Native Video — Sends the full video URL directly to the AI model for processing.'
+                                : '🖼️ Frame Extraction — Extracts individual frames from the video and sends them as images to the AI model.'}
+                        </div>
+                    )}
+
                     <div style={{ marginBottom: '16px' }}>
                         <Select
                             label="Select Model"
@@ -137,7 +191,7 @@ export default function ModelTestPage() {
                         </Select>
                     </div>
 
-                    {['videotext'].includes(activeTab) && (
+                    {isVideoTab && (
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-smoke-gray)' }}>Upload Video</label>
                             <div
@@ -170,6 +224,28 @@ export default function ModelTestPage() {
                         </div>
                     )}
 
+                    {/* Frame count selector — only for frame extraction mode */}
+                    {activeTab === 'videoframes' && (
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--color-smoke-gray)' }}>
+                                Frames to Extract: <strong style={{ color: 'var(--color-text)' }}>{frameCount}</strong>
+                            </label>
+                            <input
+                                type="range"
+                                min={1}
+                                max={10}
+                                value={frameCount}
+                                onChange={e => setFrameCount(Number(e.target.value))}
+                                style={{ width: '100%', accentColor: 'var(--color-accent)' }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-smoke-gray)', marginTop: '4px' }}>
+                                <span>1</span>
+                                <span>5</span>
+                                <span>10</span>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ marginBottom: '16px' }}>
                         <Textarea
                             label="Prompt"
@@ -184,7 +260,7 @@ export default function ModelTestPage() {
                         className="btn btn--primary"
                         style={{ width: '100%', marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px' }}
                         onClick={runTest}
-                        disabled={isRunning || (!file && ['videotext'].includes(activeTab))}
+                        disabled={isRunning || (!file && isVideoTab)}
                     >
                         {isRunning ? <><Loader2 size={18} className="animate-spin" /> Processing...</> : <><Play size={18} /> Run Test</>}
                     </button>
@@ -198,9 +274,33 @@ export default function ModelTestPage() {
 
                 {/* Results Panel */}
                 <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                         <h3 style={{ fontSize: '1.2rem' }}>Output</h3>
-                        {resultData && <span style={{ fontSize: '0.85rem', color: 'var(--color-smoke-gray)', background: 'var(--color-surface)', padding: '4px 8px', borderRadius: '4px' }}>{(duration / 1000).toFixed(2)}s latency</span>}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {resultData?.method && (
+                                <span style={{
+                                    fontSize: '0.75rem',
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 600,
+                                    backgroundColor: resultData.method === 'native-video'
+                                        ? 'rgba(34, 197, 94, 0.15)'
+                                        : resultData.method === 'frame-extraction'
+                                            ? 'rgba(59, 130, 246, 0.15)'
+                                            : 'rgba(168, 85, 247, 0.15)',
+                                    color: resultData.method === 'native-video'
+                                        ? '#22c55e'
+                                        : resultData.method === 'frame-extraction'
+                                            ? '#3b82f6'
+                                            : '#a855f7',
+                                }}>
+                                    {resultData.method === 'native-video' && '🎬 Native Video'}
+                                    {resultData.method === 'frame-extraction' && `🖼️ ${resultData.framesUsed} Frames`}
+                                    {resultData.method === 'text' && '💬 Text'}
+                                </span>
+                            )}
+                            {resultData && <span style={{ fontSize: '0.85rem', color: 'var(--color-smoke-gray)', background: 'var(--color-surface)', padding: '4px 8px', borderRadius: '4px' }}>{(duration / 1000).toFixed(2)}s latency</span>}
+                        </div>
                     </div>
 
                     <div style={{
@@ -223,7 +323,7 @@ export default function ModelTestPage() {
                         {isRunning && (
                             <div style={{ margin: 'auto', color: 'var(--color-accent)', textAlign: 'center' }}>
                                 <Loader2 size={48} className="animate-spin" style={{ margin: '0 auto 16px' }} />
-                                Waiting for model response...
+                                {activeTab === 'videoframes' ? 'Extracting frames & waiting for model...' : 'Waiting for model response...'}
                             </div>
                         )}
 

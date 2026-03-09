@@ -1,6 +1,6 @@
 /**
  * Dynamic color theme system — applies a random accent theme on each visit.
- * Same pattern as overstay/JustOneLastDrink.
+ * Same pattern as justOneLastDrink/JustOneLastDrink.
  */
 
 export interface ColorTheme {

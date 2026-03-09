@@ -1,0 +1,12 @@
+services:
+  convex:
+    project: VidiQ
+  vercel:
+    project: VidiQ
+  stripe:
+    mode: live
+  nvidia:
+    api: nvidia-nims
+  github:
+    owner: mxn2020
+    repo: vidiq

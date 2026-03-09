@@ -1,0 +1,15 @@
+name: VidiQ
+description: AI-powered video analysis and creation platform
+tier: t3
+lane: fun
+priority: high
+category: app
+focus: active
+open_tasks: 0
+oss: true
+stack: [vite, react, typescript, convex]
+repo: https://github.com/mxn2020/vidiq
+deploy_url: null
+last_active: 2026-03-09
+tags: [video,ai,creation,convex]
+notes: null

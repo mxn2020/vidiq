@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Sparkles, Play } from 'lucide-react'
 import { useAction, useConvexAuth } from 'convex/react'
-import { Input } from '../components/ui/Input'
+import { Input } from '@geenius-ui/react-css'
 import { api } from '../../convex/_generated/api'
 import { useToast } from '../components/Toast'
 import type { AnalysisResult } from '../App'

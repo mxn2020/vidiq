@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Video, User, Settings, CreditCard } from 'lucide-react'
 import { MissingConfigDialog } from '../components/MissingConfigDialog'
-import { Input } from '../components/ui/Input'
+import { Input } from '@geenius-ui/react-css'
+import { toast } from 'sonner'
 
 export default function ProfilePage() {
     const { isAuthenticated } = useConvexAuth()
@@ -42,7 +43,7 @@ export default function ProfilePage() {
             if (msg.includes('not configured')) {
                 setConfigError(msg)
             } else {
-                alert(msg)
+                toast.error(msg)
             }
         } finally {
             setLoading(false)
