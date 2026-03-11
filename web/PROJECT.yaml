@@ -1,5 +1,7 @@
-id: d98fb83c-fb4a-44de-8656-4afede9169c6
 name: vidiq-web
+project_scope: child
+child_type: web-app
+parent_project: VidiQ
 description: web project
 tier: prototype
 lane: side-projects
@@ -10,7 +12,8 @@ repo: null
 deploy_url: null
 last_active: 2026-02-27
 tags: []
-notes: 
-focus: true
+notes: null
 category: infra
+focus: true
 open_tasks: 0
+id: d98fb83c-fb4a-44de-8656-4afede9169c6

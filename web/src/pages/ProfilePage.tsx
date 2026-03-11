@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { Video, User, Settings, CreditCard } from 'lucide-react'
 import { MissingConfigDialog } from '../components/MissingConfigDialog'
 import { Input } from '@geenius-ui/react-css'
-import { toast } from 'sonner'
+import toast from 'react-hot-toast'
 
 export default function ProfilePage() {
     const { isAuthenticated } = useConvexAuth()

@@ -1,3 +1,4 @@
+import { Toaster } from 'react-hot-toast'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -102,6 +103,7 @@ function App() {
             <BrowserRouter>
                 <AppRoutes />
             </BrowserRouter>
+            <Toaster position="bottom-right" />
         </ErrorBoundary>
     )
 }
